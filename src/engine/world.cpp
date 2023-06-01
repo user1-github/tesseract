@@ -914,11 +914,12 @@ bool hoveringonent(int ent, int orient)
 
 VAR(entitysurf, 0, 0, 1);
 
-ICOMMAND(entadd, "", (),
+ICOMMAND(entadd, "b", (int *n),
 {
-    if(enthover >= 0 && !noentedit())
+    int id = *n >= 0 ? *n : enthover;
+    if(id >= 0 && !noentedit())
     {
-        if(entgroup.find(enthover) < 0) entadd(enthover);
+        if(entgroup.find(id) < 0) entadd(id);
         if(entmoving > 1) entmoving = 1;
     }
 });
