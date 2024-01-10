@@ -621,6 +621,7 @@ namespace server
         }
     });
     SVAR(servermotd, "");
+    VAR(specchat, 0, 0, 1);
 
     struct teamkillkick
     {
@@ -3208,15 +3209,25 @@ namespace server
             case N_SAYTEAM:
             {
                 getstring(text, p);
-                if(!ci || !cq || (ci->state.state==CS_SPECTATOR && !ci->local && !ci->privilege) || !m_teammode || !validteam(cq->team)) break;
+                if(!ci || !cq) break;
+                if(ci->state.state==CS_SPECTATOR)
+                {
+                    if(!specchat && !ci->local && !ci->privilege) break;
+                }
+                else if (!m_teammode || !validteam(cq->team)) break;
                 filtertext(text, text, true, true);
                 loopv(clients)
                 {
                     clientinfo *t = clients[i];
-                    if(t==cq || t->state.state==CS_SPECTATOR || t->state.aitype != AI_NONE || cq->team != t->team) continue;
+                    if(t==cq || t->state.aitype != AI_NONE) continue;
+                    if(t->state.state==CS_SPECTATOR)
+                    {
+                        if(ci->state.state!=CS_SPECTATOR) continue;
+                    }
+                    else if(ci->state.state==CS_SPECTATOR || cq->team != t->team) continue;
                     sendf(t->clientnum, 1, "riis", N_SAYTEAM, cq->clientnum, text);
                 }
-                if(isdedicatedserver() && cq) logoutf("%s <%s>: %s", colorname(cq), teamnames[cq->team], text);
+                if(isdedicatedserver() && cq) logoutf("%s <%s>: %s", colorname(cq), ci->state.state==CS_SPECTATOR ? "spec" : teamnames[cq->team], text);
                 break;
             }
 

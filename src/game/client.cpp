@@ -382,10 +382,10 @@ namespace game
 
     bool isspectator(int cn)
     {
-        gameent *d = getclient(cn);
+        gameent *d = cn<0 ? player1 : getclient(cn);
         return d && d->state==CS_SPECTATOR;
     }
-    ICOMMAND(isspectator, "i", (int *cn), intret(isspectator(*cn) ? 1 : 0));
+    ICOMMAND(isspectator, "b", (int *cn), intret(isspectator(*cn) ? 1 : 0));
 
     ICOMMAND(islagged, "i", (int *cn),
     {
@@ -990,12 +990,12 @@ namespace game
     }
 
     VARP(teamcolorchat, 0, 1, 1);
-    const char *chatcolorname(gameent *d) { return teamcolorchat ? teamcolorname(d, NULL) : colorname(d); }
+    const char *chatcolorname(gameent *d) { return teamcolorchat && (d!=player1 || d->state!=CS_SPECTATOR) ? teamcolorname(d, NULL) : colorname(d); }
 
     void toserver(char *text) { conoutf(CON_CHAT, "%s:%s %s", chatcolorname(player1), teamtextcode[0], text); addmsg(N_TEXT, "rcs", player1, text); }
     COMMANDN(say, toserver, "C");
 
-    void sayteam(char *text) { if(!m_teammode || !validteam(player1->team)) return; conoutf(CON_TEAMCHAT, "%s:%s %s", chatcolorname(player1), teamtextcode[player1->team], text); addmsg(N_SAYTEAM, "rcs", player1, text); }
+    void sayteam(char *text) { if(player1->state!=CS_SPECTATOR && (!m_teammode || !validteam(player1->team))) return; conoutf(CON_TEAMCHAT, "%s:%s %s", chatcolorname(player1), teamtextcode[player1->state==CS_SPECTATOR ? 0 : player1->team], text); addmsg(N_SAYTEAM, "rcs", player1, text); }
     COMMAND(sayteam, "C");
 
     ICOMMAND(servcmd, "C", (char *cmd), addmsg(N_SERVCMD, "rs", cmd));
@@ -1407,7 +1407,7 @@ namespace game
                 getstring(text, p);
                 filtertext(text, text, true, true);
                 if(!t || isignored(t->clientnum)) break;
-                int team = validteam(t->team) ? t->team : 0;
+                int team = t->state!=CS_SPECTATOR && validteam(t->team) ? t->team : 0;
                 if(t->state!=CS_DEAD && t->state!=CS_SPECTATOR)
                     particle_textcopy(t->abovehead(), text, PART_TEXT, 2000, teamtextcolor[team], 4.0f, -8);
                 conoutf(CON_TEAMCHAT, "%s:%s %s", chatcolorname(t), teamtextcode[team], text);
